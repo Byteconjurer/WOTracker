@@ -1,0 +1,34 @@
+﻿@using WOTracker.DataAccess
+
+@page "/settings"
+
+<MudPaper Style="height:86vh; width:90vw; padding-top:10px; text-align:center; margin-left:5px!important;" Class="ma-5 pa-6">
+    
+    <MudGrid Spacing="3" Class="ml-1">
+        <MudItem xs="6">
+            <MudText style="text-align:left;" Typo="Typo.body1">Delete all logged workouts</MudText>
+        </MudItem>
+        <MudItem xs="6">
+            <MudButton Color="Color.Warning" Variant="Variant.Outlined" OnClick="OpenDialog">Delete</MudButton>
+        </MudItem>
+    </MudGrid>
+    
+   </MudPaper>
+
+@code {
+    [Inject] IDialogService DialogService { get; set; } = default!;
+    [Inject] WOTrackerDbContext DbContext { get; set; } = default!;
+
+        private void OpenDialog()
+        {
+            var options = new DialogOptions
+                {
+                    CloseOnEscapeKey = true,
+                    Position = DialogPosition.Center,
+                    MaxWidth = MaxWidth.ExtraExtraLarge,
+                };
+
+        DialogService.Show<DeleteDatesDialog>("Confirm", options);
+        }
+
+}

@@ -1,0 +1,75 @@
+﻿@using WOTracker.Models
+@using WOTracker.DataAccess
+
+@namespace WOTracker
+
+<MudDialog>
+    <DialogContent>
+        <MudSelect style="max-width:180px;" T="string" Label="Musclegroups" FullWidth="false" MultiSelection="true" @bind-Value="_Value" @bind-SelectedValues="_SelectedMuscleGroups">
+            @foreach (var group in _Musclegroups)
+            {
+                <MudSelectItem style="width:150px;"  T="string" Value="@group">@group</MudSelectItem>
+            }
+        </MudSelect>
+        <MudTextField Class="mt-4" Lines=4 Clearable="true" Label="Notes" Variant="Variant.Outlined" @bind-Value="_Note" />
+
+    </DialogContent>
+    <DialogActions>
+        <MudButton  OnClick="Submit">Ok</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+
+    [Inject] internal WOTrackerDbContext DbContext { get; set; } = default!;
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public DateTime Date { get; set; }
+    [Parameter] public EventCallback<WorkoutDay> OnDialogClosed { get; set; }
+
+    private string _Value { get; set; }
+    private List<string> _Musclegroups { get; set; }
+    private string _Note { get; set; }
+    private IEnumerable<string> _SelectedMuscleGroups { get; set; } = new HashSet<string>();
+
+    private async Task Submit() 
+    {
+        if (_SelectedMuscleGroups.Count() == 0 && string.IsNullOrEmpty(_Note))
+        {
+            MudDialog.Close(DialogResult.Ok(false));
+            return;
+        }
+
+        var workoutDay = new WorkoutDay(Date, _Note ?? "", _SelectedMuscleGroups.Select(mg => new MuscleGroup { Musclegroup = Enum.Parse<Musclegroups>(mg) })
+             .ToList());
+        await DbContext.WorkoutDays.AddAsync(workoutDay);
+        await DbContext.SaveChangesAsync(); 
+        await OnDialogClosed.InvokeAsync(workoutDay);
+        MudDialog.Close(DialogResult.Ok(true)); 
+       
+    }
+
+    protected override void OnInitialized()
+    {
+        _Musclegroups = new List<string>
+        {
+            "Abs",
+            "Arms",
+            "Back",
+            "Backside",
+            "Cardio",
+            "Chest",
+            "Core",
+            "Fullbody",
+            "Frontside",
+            "Legs",
+            "Shoulders"
+        };
+        
+    }
+
+    private void Dispose()
+    {
+        MudDialog.Dispose();
+    }
+
+}

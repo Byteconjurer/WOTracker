@@ -1,0 +1,49 @@
+﻿@using WOTracker.Utilities
+@using WOTracker.Models
+
+@namespace WOTracker
+
+<MudCarousel Class="mud-width-full"
+             Style="height:86vh; overflow-y:auto;"
+             ShowArrows="false"
+             ShowBullets="true"
+             EnableSwipeGesture="true"
+             AutoCycle="false"
+             TData="object"
+             BulletsPosition="Position.Start">
+
+    @foreach (var dateChunk in Utilities.Helpers.ChunkBy(_dates, 28))
+    {
+        
+        <MudCarouselItem Transition="Transition.Slide" 
+                         Color="@Color.Primary">
+            <div class="mt-10">
+                <CalendarComponent DatesFromDb="@dateChunk" />
+            </div>
+        </MudCarouselItem>
+        
+    }
+
+    
+</MudCarousel>
+
+<MudIconButton Icon="@Icons.Material.Outlined.PlaylistAdd" Color="Color.Info" OnClick="AddWeekToCarousel" />
+
+@code {
+
+    [Inject] WODateListGenerator DatesGenerator { get; set; } = default!;
+
+    private List<object> _dates = new List<object>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _dates = await DatesGenerator.GenerateDatesList(DateTime.Today);
+    }
+
+    private void AddWeekToCarousel()
+    {
+        DatesGenerator.AddWeekToList(_dates);
+       
+    }
+
+}

@@ -1,0 +1,37 @@
+﻿@using WOTracker.DataAccess
+
+@namespace WOTracker.Components
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body1"> This action will delete all workouts from the database. Are you sure you want to proceed?</MudText>
+    </DialogContent>
+    <DialogActions>
+
+        <MudButton Color="Color.Info" Variant="Variant.Outlined" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Warning" Variant="Variant.Outlined" OnClick="DeleteDates">Delete</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+
+    [Inject] internal WOTrackerDbContext DbContext { get; set; } = default!;
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+
+    private void DeleteDates()
+    {
+        DbContext.WorkoutDays.RemoveRange(DbContext.WorkoutDays);
+        DbContext.SaveChanges();
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Close(DialogResult.Ok(false));
+    }
+
+    private void Dispose()
+    {
+        MudDialog.Dispose();
+    }
+}

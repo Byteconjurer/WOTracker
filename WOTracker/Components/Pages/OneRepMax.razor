@@ -1,0 +1,98 @@
+@page "/OneRepMax"
+
+@namespace WOTracker
+
+<MudPaper Style="height:86vh; width:90vw; padding-top:10px; margin-top:10px; text-align:center;">
+    
+    <div style="text-align:left;">
+    <MudTextField @bind-Value="_weight" 
+        Class="ma-3"
+        Clearable="true"
+        InputMode="InputMode.numeric"
+        Error="_isError" 
+        RequiredError="Must be filled out" 
+        ErrorText="Must be a number above 0" 
+        Label="Weight (kg)" 
+        Variant="Variant.Outlined"> </MudTextField>
+    
+    <MudTextField @bind-Value="_reps"
+        Class="ma-3"
+        Clearable="true"
+        InputMode="InputMode.numeric"
+        Error="_isError" 
+        RequiredError="Must be filled out" 
+        ErrorText="Must be a number above 0" 
+        Label="# Reps" 
+        Variant="Variant.Outlined"> </MudTextField>
+
+    <MudIconButton Icon="@Icons.Material.Filled.Calculate"  OnClick="CalculateOneRepMax" Color="Color.Info">Calculate</MudIconButton>
+    </div>
+
+    <div class="@(_showTable ? "fadeInFromBottom" : "hide")">
+    <MudText Typo="Typo.h6">Your one rep max is: @_oneRM kg</MudText>
+
+    <MudSimpleTable Style="overflow-x: auto;" >
+        <thead>
+            <tr>
+                @foreach (var h in _headings)
+                {
+                    <th>@h</th>
+                }
+            </tr>
+        </thead>
+            <tbody style="text-align:center;">
+            @foreach (var row in rows)
+            {
+                <tr>
+                    @foreach (var x in row.Split())
+                    {
+                        <td>@x</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+    </div>
+
+</MudPaper>
+
+@code
+{
+    private int _weight;
+    private int _reps;
+    private int _oneRM;
+    private bool _isError = false;
+    private bool _showTable = false;
+    private string[] _headings = { "Percentage of 1RM", "Weight", "Reps" };
+    private int[] _repsForTable = { 1, 2, 4, 6, 8, 10, 12, 16, 20, 24, 30 };
+    private List<string> rows = new List<string>();
+
+
+    private void CalculateOneRepMax()
+    {
+        if (_weight <= 0 || _reps <= 0)
+        {
+            _isError = true;
+            return;
+        }
+        else
+        {
+            _isError = false;
+        }
+
+        _oneRM = (int)(_weight * (1 + 0.0333 * _reps));
+        rows.Clear();
+
+        int index = 0;
+        for (int i = 100; i >= 50; i -= 5)
+        {
+            rows.Add($"{i}% {_oneRM * i / 100}kg {_repsForTable[index]}");
+            index++;
+        }
+
+        _showTable = true;
+
+    }
+   
+}
+

@@ -1,0 +1,63 @@
+﻿@inherits LayoutComponentBase
+
+<MudThemeProvider Theme="_theme" IsDarkMode="_isDarkMode" DefaultScrollbar="true" />
+<MudDialogProvider FullWidth="true" />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="0">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudSwitch @bind-Value="@_isDarkMode" Color="Color.Primary" Class="ma-4" T="bool" />
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Custom.Brands.GitHub" Color="Color.Inherit" Href="https://github.com/Byteconjurer" Target="_blank" />
+    </MudAppBar>
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="3" Width="120px;" >
+        <MudDrawerHeader>
+            <MudText>Workout Tracker</MudText>
+        </MudDrawerHeader>
+        <NavMenu />
+    </MudDrawer>
+    <MudMainContent>
+        <MudContainer>
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+
+@code{
+
+    private bool _isDarkMode;
+    
+    bool _drawerOpen = true;
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    private MudTheme _theme = new()
+        {
+            Palette = new PaletteLight()
+            {
+                Primary = Colors.Grey.Lighten1,
+                Surface = Colors.Grey.Lighten5,
+                DrawerBackground = "#f59342",
+                DrawerText = Colors.Grey.Darken3,
+                Background = Colors.Grey.Lighten1,
+                Error = Colors.Shades.Black,
+
+            },
+            PaletteDark = new PaletteDark()
+            {
+                Primary = "#373946",        
+                Surface = "#4d4f5c",
+                DrawerBackground = Colors.DeepPurple.Darken4,
+                DrawerText = Colors.Grey.Lighten3,
+                Background = "#373946",
+                Error = Colors.Shades.White,
+            }
+        };
+
+    
+}

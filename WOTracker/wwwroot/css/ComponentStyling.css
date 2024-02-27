@@ -1,0 +1,71 @@
+﻿
+@keyframes fadeInFromBottom {
+    from
+
+{
+    opacity: 0;
+    transform: translateY(20px); /* Adjust the distance from the bottom */
+}
+
+to {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+}
+
+.fadeInFromBottom {
+    display: block;
+    animation: fadeInFromBottom 0.5s ease-out; /* Adjust the animation duration */
+}
+
+.hide {
+    display: none;
+}
+
+.ellipsis {
+    max-width:15vw;
+    white-space: nowrap;
+    overflow:scroll;
+    text-overflow:clip;
+}
+
+.boldfont{
+    font-weight:600;
+    font-size:1rem!important;  
+}
+
+.musclegroups {
+    scrollbar-width: none;
+    margin-left: -30px;
+    flex: 1;
+    text-align: left;
+    font-size: 0.8rem;
+    width: 27vw;
+    height: 50px;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: left;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.comment {
+    width: 35vw;
+    flex: 1;
+    margin-left: -20px;
+    height: 50px;
+    display: flex;
+    text-align: left;
+    font-style: italic;
+    font-size: 0.7rem;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    flex-wrap: wrap;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    text-overflow: ellipsis;
+}

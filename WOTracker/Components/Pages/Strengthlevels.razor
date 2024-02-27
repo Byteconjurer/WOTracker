@@ -1,0 +1,197 @@
+@using WOTracker.Models
+@using WOTracker.DataAccess
+@using Microsoft.EntityFrameworkCore
+
+
+@page "/strengthlevels"
+
+@namespace WOTracker
+
+
+<MudPaper Style="height:86vh; width:90vw; padding-top:10px; margin-top:10px; text-align:center;">
+
+    <div style="text-align:left;">
+        <div style="display:flex; align-items: center; justify-content: space-between;">
+            <MudTextField Value="_weight"
+                          ValueChanged="(int i) => HandleWeightValueChanged(i)"
+                          Class="ma-3"
+                          Style="width:200px;"
+                          Clearable="true"
+                          InputMode="InputMode.numeric"
+                          Error="_isError1"
+                          ErrorText="Must be a number above 0"
+                          Label="Weight (kg)"
+                          Variant="Variant.Outlined"
+                          Validation="(int _weight) => _weight > 0 ">
+
+            </MudTextField>
+
+            <MudSwitch ValueChanged="(bool b) => HandleUnitChanged(b)" Value="@_pounds">@(_pounds ? "lb" : "kg")</MudSwitch>
+        </div>
+
+        <MudAutocomplete T="string"
+                         Label="Select or search for an exercise.."
+                         @bind-Value="_selectedExercise"
+                         SearchFunc="@Search"
+                         CoerceText="true"
+                         CoerceValue="true"
+                         DebounceInterval="300"
+                         Clearable="true"
+                         Validation="(string _selectedExercise) => ValidateExercise(_selectedExercise)"
+                         Class="ml-3 mr-3" />
+
+    </div>
+
+    <div class="@(_showTable ? "fadeInFromBottom" : "hide")">
+        <MudTabs Outlined="true"
+                 Class="mt-4 ml-3 mr-3"
+                 Rounded="true"
+                 AlwaysShowScrollButtons="false"
+                 Color="Color.Primary"
+                 Centered="true">
+
+            <MudTabPanel Icon="@Icons.Material.Filled.Male" OnClick="async() => await SetGender(true)" />
+            <MudTabPanel Icon="@Icons.Material.Filled.Female" OnClick="async() => await SetGender(false)" />
+
+        </MudTabs>
+
+        <MudText Class="mt-3"
+                 Typo="Typo.body2">
+            @(Math.Round(_weight * (_pounds ? 2.20462m : 1))) @(_pounds ? "lb" : "kg") @(_sex ? "Male" : "Female") strength standards for @_selectedExercise
+        </MudText>
+
+        <MudSimpleTable Style="overflow-x: auto;"
+                        Dense="true"
+                        FixedHeader="true">
+            <thead>
+                <tr>
+                    @foreach (var h in _headings)
+                    {
+                        <th class="ellipsis">@h</th>
+                    }
+                </tr>
+            </thead>
+            <tbody style="text-align:center;">
+                @foreach (var row in _tableData)
+                {
+                    <tr>
+                        <td>@row.Key</td>
+                        @foreach (var x in row.Value)
+                        {
+                            <td>@x</td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </div>
+</MudPaper>
+
+
+
+
+@code
+{
+    [Inject] internal WOTrackerDbContext DBContext { get; set; } = default!;
+
+    private int _weight;
+    private bool _sex = true;
+    private bool _isError1;
+    private bool _inputValidated = false;
+    private bool _showTable = false;
+    public bool _pounds = false;
+    private string? _selectedExercise;
+    private List<string> _exercisesList = new();
+    private Dictionary<int, int[]> _tableData = new();
+
+    private string[] _headings = { "Age", "Beginner", "Novice", "Intermediate", "Advanced", "Elite" };
+    private decimal[] _ageMultipliers = { 0.850m, 0.970m, 1.000m, 1.000m, 1.000m, 1.000m, 0.947m, 0.888m, 0.821m, 0.751m, 0.680m, 0.610m, 0.544m, 0.485m, 0.438m, 0.391m };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _exercisesList = await DBContext.Exercises.Select(e => e.Name).ToListAsync();
+        await base.OnInitializedAsync();
+    }
+
+    private async Task HandleWeightValueChanged(int value)
+    {
+        _weight = value;
+        _isError1 = value < 0;
+        await PopulateTable(_sex);
+    }
+
+    private async Task HandleUnitChanged(bool value)
+    {
+        _pounds = value;
+        await PopulateTable(_sex);
+    }
+
+    private async Task<IEnumerable<string>> Search(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return _exercisesList;
+        return _exercisesList.Where(x => x.Contains(value, StringComparison.InvariantCultureIgnoreCase));
+    }
+
+    private async Task<bool> ValidateExercise(string value)
+    {
+        if (_exercisesList.Contains(value, StringComparer.InvariantCultureIgnoreCase))
+        {
+            _inputValidated = true;
+
+            if (_weight <= 0)
+            {
+                _isError1 = true;
+                return false;
+            }
+            _isError1 = false;
+            await PopulateTable(_sex);
+            return true;
+        }
+        _inputValidated = false;
+        return false;
+    }
+
+
+    private async Task PopulateTable(bool male)
+    {
+        if (_inputValidated)
+        {
+            _tableData.Clear();
+
+            var bodyweightMultipliersString = await DBContext.Exercises
+                .Where(e => e.Name == _selectedExercise)
+                .Select(e => male ? e.MaleMultipliers : e.FemaleMultipliers)
+                .FirstOrDefaultAsync();
+
+            if (bodyweightMultipliersString != null)
+            {
+                var bodyweightMultipliers = bodyweightMultipliersString.Split(' ')
+                    .Select(s => decimal.TryParse(s, out var value) ? value / 100 : 0)
+                    .ToArray();
+
+                int index = 0;
+                for (int i = 15; i <= 90; i += 5)
+                {
+                    var arrayToAddToTable = bodyweightMultipliers
+                        .Select(bwm => (int)Math.Round(bwm * _weight * _ageMultipliers[index] * (_pounds ? 2.20462m : 1m), 0))
+                        .ToArray();
+
+                    _tableData.Add(i, arrayToAddToTable);
+                    index++;
+                }
+
+            }
+            _showTable = true;
+
+        }
+
+    }
+
+    private async Task SetGender(bool gender)
+    {
+        _sex = gender;
+        await PopulateTable(gender);
+    }
+
+}

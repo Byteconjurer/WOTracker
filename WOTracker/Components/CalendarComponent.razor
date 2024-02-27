@@ -1,0 +1,191 @@
+﻿@using WOTracker.DataAccess
+@using WOTracker.Models
+@using System.Globalization;
+
+@namespace WOTracker
+
+
+@foreach (var dateChunk in Utilities.Helpers.ChunkBy(_dates, 7))
+{
+    // Displays the week number above the MudTable
+    @if (dateChunk.First() is DateTime date)
+    {
+        <MudText Style="text-shadow: 1px 1px 3px #070707;">v. @Utilities.Helpers.GetWeekOfYear((DateTime)dateChunk.First())</MudText>
+    }
+    else if (dateChunk.First() is WorkoutDay workoutDay)
+    {
+        <MudText Style="text-shadow: 1px 1px 3px #070707;">v. @Utilities.Helpers.GetWeekOfYear(workoutDay.Date)</MudText>
+    }
+
+    <MudTable T="object" Items="@dateChunk" Hover="true" Breakpoint="Breakpoint.Sm"
+              @ref="_mudTable"
+              RowClass="cursor-pointer"
+              MultiSelection="false"
+              SelectedItem="@_date"
+              OnRowClick="RowClickEvent"
+              Dense="true"
+              Class="mb-4">
+
+        <RowTemplate>
+
+
+            @if (context is WorkoutDay workoutDay)
+            {
+                <MudTd Class="d-flex ma-0" Style="max-height:55px;">
+
+                    @{
+                        var muscleGroupNames = string.Join(", ", workoutDay.Groups.Select(wdmg => wdmg.Musclegroup.ToString()));
+                    }
+                    <MudContainer>
+
+                        <MudGrid>
+                            <MudItem xs="4">
+
+                                <MudPaper Class="musclegroups" Elevation="0"> @muscleGroupNames </MudPaper>
+                               
+                            </MudItem>
+                                <MudItem xs="5">
+
+                                    <MudPaper Class="comment" Elevation="0">@workoutDay.Comment</MudPaper>
+
+                                </MudItem>
+                                <MudItem xs="3">
+
+                                    <MudPaper Style="width:17vw; text-align:right; margin-top:4px; font-size:0.9rem; flex:1;" 
+                                    Elevation="0"
+                                    Class="@(workoutDay.Date.Date == DateTime.Today ? "boldfont" : "")">@(workoutDay.Date.DayOfWeek) <br> 
+                                    @(workoutDay.Date.ToString("d MMM"))
+                                </MudPaper>
+
+                                </MudItem>
+                            </MudGrid>
+                            
+                        </MudContainer>
+
+                        
+                    </MudTd>
+
+            }
+            else if (context is DateTime dateTime)
+            {
+                <MudTd Class="d-flex">
+                    <div style="flex:1; text-align:left;"> <MudIconButton Style="margin-left:-25px;" Icon="@Icons.Material.Outlined.Add" Size="Size.Small" Color="Color.Success" /> </div>
+                    <div style="flex:1; text-align:right;" class="@(dateTime.Date == DateTime.Today ? "boldfont" : "")"> @(dateTime.DayOfWeek) <br> @(dateTime.ToString("d MMM")) </div>
+                </MudTd>
+
+            }
+
+        </RowTemplate>
+    </MudTable>
+
+}
+
+
+
+@code {
+
+    [Inject] WOTrackerDbContext DbContext { get; set; } = default!;
+    [Inject] IDialogService DialogService { get; set; } = default!;
+
+    [Parameter]
+    public IEnumerable<object> DatesFromDb { get; set; } = new List<object>();
+
+    private List<object> _dates = new();
+    private MudTable<object> _mudTable = new();
+    private object _date;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _dates = DatesFromDb.ToList();
+        await base.OnInitializedAsync();
+    }
+
+    protected override void OnParametersSet()
+    {  
+        if(_dates.Count < DatesFromDb.Count())
+        _dates = DatesFromDb.ToList();
+        base.OnParametersSet();
+    }
+
+    private void RowClickEvent(TableRowClickEventArgs<object> tableRowClickEventArgs)
+    {
+        _date = tableRowClickEventArgs.Item;
+
+        if (_date is WorkoutDay tr)
+        {
+            _date = tr.Date;
+            OpenDialog("edit", (DateTime)_date);
+        }
+
+        else if (_date is DateTime date)
+        {
+            _date = date;
+            OpenDialog("add", (DateTime)_date);
+        }
+
+    }
+
+    private void OpenDialog(string mode, DateTime date)
+    {
+        var options = new DialogOptions
+            {
+                CloseOnEscapeKey = true,
+                Position = DialogPosition.Center,
+                NoHeader = true,
+                MaxWidth = MaxWidth.ExtraExtraLarge,
+
+            };
+
+        if (mode == "add")
+        {
+            var parameters = new DialogParameters<AddWorkoutDialog>();
+            parameters.Add("Date", date);
+            parameters.Add("OnDialogClosed", EventCallback.Factory.Create<WorkoutDay>(this, HandleAddDialogClose));
+            DialogService.Show<AddWorkoutDialog>("Add Dialog", parameters, options);
+        }
+        else if (mode == "edit")
+        {
+            var parameters = new DialogParameters<EditWorkoutDialog>();
+            parameters.Add("Date", date);
+            parameters.Add("WorkoutDay", _dates.FirstOrDefault(d => d is WorkoutDay wd && wd.Date == date) as WorkoutDay);
+            parameters.Add("OnDialogClosed", EventCallback.Factory.Create<(WorkoutDay, string)>(this, HandleEditDialogClose));
+            DialogService.Show<EditWorkoutDialog>("Edit Dialog", parameters, options);
+        }
+
+    }
+
+
+    // Adds a WorkoutDay to the _dates list and rerenders the component.
+    private void HandleAddDialogClose(WorkoutDay result)
+    {
+        for (int i = 0; i < _dates.Count; i++)
+        {
+            if (_dates[i] is DateTime date && date == result.Date)
+            {
+                _dates[i] = result;
+                break;
+            }
+        }      
+    }
+
+    // Updates the date list when a WorkoutDay has been changed or deleted.
+    private void HandleEditDialogClose((WorkoutDay Result, string mode) result)
+    {
+        for (int i = 0; i < _dates.Count; i++)
+        {
+            if (_dates[i] is WorkoutDay workoutDay && workoutDay.Date == result.Result.Date)
+            {
+                if (result.mode == "delete")
+                {
+                    _dates[i] = result.Result.Date;
+                }
+                else
+                {
+                    _dates[i] = result.Result;
+                }
+                break;
+            }
+        }
+    }
+
+}
